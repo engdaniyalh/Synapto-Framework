@@ -15,7 +15,8 @@ import numpy as np
 class MotorLSTM(nn.Module):
     """
     @class MotorLSTM
-    @brief Time-series deep learning model for industrial motor anomaly detection.
+    @brief Residual time-series LSTM model for industrial motor anomaly detection.
+    Predicts next-step current as x_{t-1} + delta(x_{0:t-1}) for rock-solid stability.
     """
 
     def __init__(self, input_dim: int = 1, hidden_dim: int = 64, num_layers: int = 2):
@@ -26,12 +27,14 @@ class MotorLSTM(nn.Module):
             nn.ReLU(),
             nn.Linear(32, 1)
         )
-        # Initialize final linear layer bias to nominal 12.5A for immediate stable baseline
-        nn.init.constant_(self.fc[-1].bias, 12.5)
+        # Initialize delta projection to 0 so unperturbed prediction matches previous step
+        nn.init.zeros_(self.fc[-1].weight)
+        nn.init.zeros_(self.fc[-1].bias)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out, _ = self.lstm(x)
-        return self.fc(out[:, -1, :])
+        delta = self.fc(out[:, -1, :])
+        return x[:, -1, :] + delta
 
 
 def train_baseline_model(epochs: int = 3, seq_len: int = 10) -> MotorLSTM:

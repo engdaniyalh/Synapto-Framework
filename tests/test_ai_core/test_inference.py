@@ -17,12 +17,13 @@ from src.ai_core.onnx_inference import MotorAnomalyDetector
 @pytest.fixture(scope="module")
 def exported_model_setup(tmp_path_factory):
     """
-    @brief Trains and exports a deterministic ONNX model for testing.
+    @brief Instantiates and exports a deterministic Residual MotorLSTM ONNX model for testing.
     """
     model_dir = tmp_path_factory.mktemp("models")
     model_path = str(model_dir / "test_motor_lstm.onnx")
 
-    model = train_baseline_model(epochs=3)
+    torch.manual_seed(42)
+    model = MotorLSTM()
     model.eval()
 
     export_to_onnx(model_path, model=model)
