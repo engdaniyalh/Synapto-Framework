@@ -22,8 +22,7 @@ def exported_model_setup(tmp_path_factory):
     model_dir = tmp_path_factory.mktemp("models")
     model_path = str(model_dir / "test_motor_lstm.onnx")
 
-    torch.manual_seed(42)
-    model = MotorLSTM()
+    model = train_baseline_model(epochs=3)
     model.eval()
 
     export_to_onnx(model_path, model=model)

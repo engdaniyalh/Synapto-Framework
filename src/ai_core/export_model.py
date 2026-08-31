@@ -26,13 +26,15 @@ class MotorLSTM(nn.Module):
             nn.ReLU(),
             nn.Linear(32, 1)
         )
+        # Initialize final linear layer bias to nominal 12.5A for immediate stable baseline
+        nn.init.constant_(self.fc[-1].bias, 12.5)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         out, _ = self.lstm(x)
         return self.fc(out[:, -1, :])
 
 
-def train_baseline_model(epochs: int = 5, seq_len: int = 10) -> MotorLSTM:
+def train_baseline_model(epochs: int = 3, seq_len: int = 10) -> MotorLSTM:
     """
     @brief Trains a baseline LSTM on synthetic nominal motor telemetry (12.5A).
     """
@@ -44,17 +46,24 @@ def train_baseline_model(epochs: int = 5, seq_len: int = 10) -> MotorLSTM:
     loss_fn = nn.MSELoss()
 
     # Generate synthetic nominal telemetry (12.5A with 0.4A gaussian noise)
-    data = np.random.normal(12.5, 0.4, 1500).astype(np.float32)
+    data = np.random.normal(12.5, 0.4, 1000).astype(np.float32)
+    X, y = [], []
+    for i in range(len(data) - seq_len):
+        X.append(data[i:i + seq_len])
+        y.append(data[i + seq_len])
+
+    tensor_x = torch.tensor(np.array(X), dtype=torch.float32).unsqueeze(-1)
+    tensor_y = torch.tensor(np.array(y), dtype=torch.float32).unsqueeze(-1)
+
+    dataset = torch.utils.data.TensorDataset(tensor_x, tensor_y)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=64, shuffle=True)
 
     model.train()
     for _ in range(epochs):
-        for i in range(len(data) - seq_len - 1):
-            seq = torch.tensor(data[i:i + seq_len], dtype=torch.float32).view(1, seq_len, 1)
-            target = torch.tensor([[data[i + seq_len]]], dtype=torch.float32)
-
+        for batch_x, batch_y in loader:
             optimizer.zero_grad()
-            pred = model(seq)
-            loss = loss_fn(pred, target)
+            pred = model(batch_x)
+            loss = loss_fn(pred, batch_y)
             loss.backward()
             optimizer.step()
 
