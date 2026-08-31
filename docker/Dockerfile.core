@@ -1,0 +1,16 @@
+# Synapto-Core: Edge AI Inference & OPC UA Client Daemon
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /opt/synapto/core
+
+COPY requirements.txt /opt/synapto/core/
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ /opt/synapto/core/src/
+COPY pyproject.toml /opt/synapto/core/
+
+ENV PYTHONPATH=/opt/synapto/core
+
+CMD ["python", "-u", "src/ai_core/main.py"]

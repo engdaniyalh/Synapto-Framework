@@ -1,0 +1,38 @@
+# Synapto-Reflex: Real-Time C++20 OPC UA Engine
+FROM ubuntu:22.04 AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    git \
+    pkg-config \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+COPY CMakeLists.txt /build/
+COPY src/ /build/src/
+COPY tests/ /build/tests/
+
+RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build build --target synapto_reflex -j$(nproc)
+
+FROM ubuntu:22.04 AS runner
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat-openbsd \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/synapto/reflex
+
+COPY --from=builder /build/build/src/reflex_engine/synapto_reflex /opt/synapto/reflex/synapto_reflex
+
+EXPOSE 4840
+EXPOSE 4242/udp
+
+CMD ["/opt/synapto/reflex/synapto_reflex"]

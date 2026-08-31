@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  reflex_engine:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.reflex
+    container_name: synapto-reflex
+    restart: always
+    cap_add:
+      - SYS_NICE
+    ulimits:
+      rtprio: 99
+      memlock: -1
+    environment:
+      - TWIN_HOST=twin_viewer
+    ports:
+      - "4840:4840"      # OPC UA TCP
+      - "4242:4242/udp"  # Telemetry UDP
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 4840 || exit 1"]
+      interval: 2s
+      timeout: 2s
+      retries: 5
+      start_period: 3s
+    networks:
+      - synapto-net
+
+  ai_core:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.core
+    container_name: synapto-ai-core
+    restart: unless-stopped
+    depends_on:
+      reflex_engine:
+        condition: service_healthy
+    environment:
+      - OPCUA_ENDPOINT=opc.tcp://reflex_engine:4840
+      - ANOMALY_Z_THRESHOLD=3.0
+      - WINDOW_SIZE=10
+    networks:
+      - synapto-net
+
+  twin_viewer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.twin
+    container_name: synapto-twin
+    restart: unless-stopped
+    environment:
+      - UDP_PORT=4242
+      - HEADLESS_MODE=true
+    ports:
+      - "4242:4242/udp"
+    networks:
+      - synapto-net
+
+networks:
+  synapto-net:
+    driver: bridge

@@ -1,47 +1,48 @@
 # ==========================================
-# Synapto Framework Master Gitignore
+# Synapto Framework Gitignore
 # ==========================================
 
-# --- General / OS ---
+# C++ Build Artifacts
+build/
+bin/
+*.o
+*.a
+*.so
+*.dylib
+*.out
+*.exe
+compile_commands.json
+.cache/
+
+# CMake FetchContent sub-builds
+_deps/
+
+# Python & AI Artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.pt
+*.pth
+*.onnx
+models/*.onnx
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+# MuJoCo / Visualization
+*.log
+*.mcap
+
+# IDEs & System
 .DS_Store
 Thumbs.db
-*.swp
-*.log
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# --- Synapto-Core (ROS 2 / Python / Jetson) ---
-synapto_core/build/
-synapto_core/install/
-synapto_core/log/
-synapto_core/COLCON_IGNORE
-**/__pycache__/
-*.py[cod]
-*.so
-# Ignore NVMe mount point if linked inside the repo
-synapto_core/data/historian/*
-
-# --- Synapto-Reflex (M5Stack / Arduino) ---
-synapto_reflex/build/
-synapto_reflex/libraries/
-*.ino.hex
-*.ino.elf
-*.ino.zip
-
-# --- Synapto-Twin (Godot 4) ---
-synapto_twin/.godot/
-synapto_twin/.import/
-synapto_twin/export.cfg
-synapto_twin/export_credentials.cfg
-*.translation
-
-# --- Synapto-Portal (Flutter) ---
-synapto_portal/.dart_tool/
-synapto_portal/.flutter-plugins
-synapto_portal/.flutter-plugins-dependencies
-synapto_portal/.packages
-synapto_portal/build/
-synapto_portal/pubspec.lock  # Optional: keep if it's an app, ignore if a lib
-
-# --- Docker ---
+# Docker
 .docker_history

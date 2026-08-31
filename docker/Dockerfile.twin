@@ -1,0 +1,28 @@
+# Synapto-Twin: MuJoCo 3D Digital Twin Simulation
+FROM python:3.10-slim
+
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx \
+    libosmesa6 \
+    libglew-dev \
+    libglfw3 \
+    libxcursor1 \
+    libxinerama1 \
+    libxrandr2 \
+    libxi6 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/synapto/twin
+
+RUN pip install --no-cache-dir mujoco
+
+COPY src/twin/ /opt/synapto/twin/src/twin/
+
+EXPOSE 4242/udp
+
+ENV HEADLESS_MODE=true
+
+CMD ["python", "-u", "src/twin/scripts/twin_viewer.py", "--headless"]

@@ -1,0 +1,41 @@
+<mujoco model="synapto_machine">
+    <compiler angle="radian"/>
+    <option gravity="0 0 -9.81" timestep="0.005"/>
+
+    <asset>
+        <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+        <material name="matplane" reflectance="0.3" rgba="0.2 0.2 0.2 1"/>
+        <material name="matmotor" rgba="0.3 0.3 0.35 1"/>
+        <material name="matconveyor" rgba="0.15 0.15 0.18 1"/>
+        <material name="matmetal" rgba="0.7 0.7 0.75 1"/>
+        <material name="matlight" rgba="1 1 1 1" emission="1"/>
+    </asset>
+
+    <worldbody>
+        <light name="sun" pos="0 0 10" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+        <geom name="floor" type="plane" size="5 5 0.1" material="matplane"/>
+
+        <!-- Industrial Conveyor Bed -->
+        <body name="conveyor" pos="0 0 0.5">
+            <geom name="belt" type="box" size="2 0.5 0.1" material="matconveyor"/>
+            <geom name="rail_left" type="box" size="2 0.05 0.05" pos="0 0.45 0.15" material="matmetal"/>
+            <geom name="rail_right" type="box" size="2 0.05 0.05" pos="0 -0.45 0.15" material="matmetal"/>
+
+            <!-- Drive Motor Joint -->
+            <body name="motor" pos="-2.1 0 0.1">
+                <joint name="motor_joint" type="hinge" axis="0 1 0" damping="0.1"/>
+                <geom name="motor_cylinder" type="cylinder" size="0.3 0.5" material="matmotor" euler="1.5708 0 0"/>
+            </body>
+        </body>
+
+        <!-- Andon Industrial Signal Tower -->
+        <body name="andon_tower" pos="0 -1.5 1.5">
+            <geom name="tower_pole" type="cylinder" size="0.05 0.5" rgba="0.8 0.8 0.8 1" pos="0 0 -0.5"/>
+            <geom name="andon_light" type="cylinder" size="0.15 0.2" material="matlight"/>
+        </body>
+    </worldbody>
+
+    <actuator>
+        <velocity name="motor_vel" joint="motor_joint" kv="50"/>
+    </actuator>
+</mujoco>
