@@ -89,10 +89,18 @@ async def run_ai_core():
         return
 
     async with client:
-        # Retrieve OPC UA Node IDs
-        telemetry_node = client.get_node("ns=1;s=Telemetry.MotorCurrent")
-        cmd_node = client.get_node("ns=1;s=PackML.Command")
-        state_node = client.get_node("ns=1;s=PackML.StateCurrent")
+        # Dynamically resolve semantic namespace URI: urn:synapto:control:v1
+        try:
+            ns_idx = await client.get_namespace_index("urn:synapto:control:v1")
+            logging.info(f"Resolved namespace 'urn:synapto:control:v1' to index {ns_idx}")
+        except Exception:
+            ns_idx = 1
+            logging.warning("Namespace URI not found in server table; falling back to ns=1")
+
+        # Retrieve versioned OPC UA Node IDs
+        telemetry_node = client.get_node(f"ns={ns_idx};s=Telemetry.MotorCurrent")
+        cmd_node = client.get_node(f"ns={ns_idx};s=PackML.Command")
+        state_node = client.get_node(f"ns={ns_idx};s=PackML.StateCurrent")
 
         handler = TelemetryHandler(detector, cmd_node, state_node)
 

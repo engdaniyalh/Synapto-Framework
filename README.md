@@ -67,15 +67,29 @@ Synapto enforces a **strict two-thread dual-domain architecture** at the edge, g
 
 ---
 
-## 📊 OPC UA & PackML Specifications
+## 📊 Protocol Specifications & Interface Versioning
 
 ### OPC UA Information Model (Port 4840)
+- **Namespace URI:** `urn:synapto:control:v1` (dynamically discoverable via client namespace table)
 
 | Node ID | Browse Name | Data Type | Access | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `ns=1;s=PackML.StateCurrent` | `StateCurrent` | `Int32` | Read | Current PackML state integer |
 | `ns=1;s=Telemetry.MotorCurrent` | `MotorCurrent` | `Float` | Read | Real-time motor current draw (Amperes) |
 | `ns=1;s=PackML.Command` | `Command` | `Int32` | Read/Write | External state command trigger (e.g., 8=ABORT, 2=START) |
+
+### UDP Telemetry Stream Protocol (Port 4242)
+The Reflex engine broadcasts versioned, monotonically sequenced telemetry JSON frames at 100Hz:
+```json
+{
+  "v": 1,
+  "seq": 10492,
+  "ts_us": 1725055200100234,
+  "state": 6,
+  "current": 12.48,
+  "target_vel": 1.5
+}
+```
 
 ### PackML State Matrix
 

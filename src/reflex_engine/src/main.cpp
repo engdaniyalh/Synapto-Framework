@@ -186,12 +186,15 @@ void network_worker_loop() {
     UA_Server *server = UA_Server_new();
     UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
+    // Register custom semantic namespace URI: urn:synapto:control:v1
+    UA_UInt16 ns_synapto = UA_Server_addNamespace(server, "urn:synapto:control:v1");
+
     // Configure Address Space: SynaptoMachine Object
-    UA_NodeId machineNode = UA_NODEID_STRING(1, const_cast<char*>("SynaptoMachine"));
+    UA_NodeId machineNode = UA_NODEID_STRING(ns_synapto, const_cast<char*>("SynaptoMachine"));
     UA_ObjectAttributes oAttr = UA_ObjectAttributes_default;
     oAttr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>("SynaptoMachine"));
     UA_Server_addObjectNode(server, machineNode, UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER),
-                            UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES), UA_QUALIFIEDNAME(1, const_cast<char*>("SynaptoMachine")),
+                            UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES), UA_QUALIFIEDNAME(ns_synapto, const_cast<char*>("SynaptoMachine")),
                             UA_NODEID_NUMERIC(0, UA_NS0ID_BASEOBJECTTYPE), oAttr, nullptr, nullptr);
 
     // Variable Node: StateCurrent (Read-Only)
@@ -200,9 +203,9 @@ void network_worker_loop() {
     UA_Variant_setScalar(&sAttr.value, &init_state, &UA_TYPES[UA_TYPES_INT32]);
     sAttr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>("StateCurrent"));
     sAttr.accessLevel = UA_ACCESSLEVELMASK_READ;
-    UA_NodeId stateNode = UA_NODEID_STRING(1, const_cast<char*>("PackML.StateCurrent"));
+    UA_NodeId stateNode = UA_NODEID_STRING(ns_synapto, const_cast<char*>("PackML.StateCurrent"));
     UA_Server_addVariableNode(server, stateNode, machineNode, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, const_cast<char*>("StateCurrent")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                              UA_QUALIFIEDNAME(ns_synapto, const_cast<char*>("StateCurrent")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
                               sAttr, nullptr, nullptr);
 
     // Variable Node: MotorCurrent (Read-Only)
@@ -211,9 +214,9 @@ void network_worker_loop() {
     UA_Variant_setScalar(&tAttr.value, &init_curr, &UA_TYPES[UA_TYPES_FLOAT]);
     tAttr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>("MotorCurrent"));
     tAttr.accessLevel = UA_ACCESSLEVELMASK_READ;
-    UA_NodeId telemetryNode = UA_NODEID_STRING(1, const_cast<char*>("Telemetry.MotorCurrent"));
+    UA_NodeId telemetryNode = UA_NODEID_STRING(ns_synapto, const_cast<char*>("Telemetry.MotorCurrent"));
     UA_Server_addVariableNode(server, telemetryNode, machineNode, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, const_cast<char*>("MotorCurrent")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                              UA_QUALIFIEDNAME(ns_synapto, const_cast<char*>("MotorCurrent")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
                               tAttr, nullptr, nullptr);
 
     // Variable Node: Command (Read/Write)
@@ -222,9 +225,9 @@ void network_worker_loop() {
     UA_Variant_setScalar(&cAttr.value, &init_cmd, &UA_TYPES[UA_TYPES_INT32]);
     cAttr.displayName = UA_LOCALIZEDTEXT(const_cast<char*>("en-US"), const_cast<char*>("Command"));
     cAttr.accessLevel = UA_ACCESSLEVELMASK_READ | UA_ACCESSLEVELMASK_WRITE;
-    UA_NodeId cmdNode = UA_NODEID_STRING(1, const_cast<char*>("PackML.Command"));
+    UA_NodeId cmdNode = UA_NODEID_STRING(ns_synapto, const_cast<char*>("PackML.Command"));
     UA_Server_addVariableNode(server, cmdNode, machineNode, UA_NODEID_NUMERIC(0, UA_NS0ID_HASCOMPONENT),
-                              UA_QUALIFIEDNAME(1, const_cast<char*>("Command")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                              UA_QUALIFIEDNAME(ns_synapto, const_cast<char*>("Command")), UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
                               cAttr, nullptr, nullptr);
 
     // 2. Initialize non-blocking UDP socket for MuJoCo Twin
@@ -240,8 +243,8 @@ void network_worker_loop() {
     const char* twin_host = std::getenv("TWIN_HOST") ? std::getenv("TWIN_HOST") : "127.0.0.1";
     inet_pton(AF_INET, twin_host, &twin_addr.sin_addr);
 
-    std::cout << "[Synapto-Reflex] [Network Worker] OPC UA Server listening on opc.tcp://0.0.0.0:4840\n";
-    std::cout << "[Synapto-Reflex] [Network Worker] Telemetry UDP dispatching to " << twin_host << ":4242\n";
+    std::cout << "[Synapto-Reflex] [Network Worker] OPC UA Server listening on opc.tcp://0.0.0.0:4840 (ns=" << ns_synapto << ": urn:synapto:control:v1)\n";
+    std::cout << "[Synapto-Reflex] [Network Worker] Telemetry UDP dispatching to " << twin_host << ":4242 (v1 schema)\n";
 
     TelemetryFrame latest_frame{};
 
@@ -268,11 +271,11 @@ void network_worker_loop() {
             UA_Variant_setScalar(&v_tel, &t_val, &UA_TYPES[UA_TYPES_FLOAT]);
             UA_Server_writeValue(server, telemetryNode, v_tel);
 
-            // C. Dispatch ordered JSON UDP frame to MuJoCo Twin
+            // C. Dispatch versioned, ordered JSON UDP frame to MuJoCo Twin
             if (udp_sock >= 0) {
                 char json_buf[256];
                 int len = std::snprintf(json_buf, sizeof(json_buf),
-                    "{\"seq\":%llu,\"ts_us\":%llu,\"state\":%d,\"current\":%.2f,\"target_vel\":%.2f}",
+                    "{\"v\":1,\"seq\":%llu,\"ts_us\":%llu,\"state\":%d,\"current\":%.2f,\"target_vel\":%.2f}",
                     static_cast<unsigned long long>(latest_frame.seq),
                     static_cast<unsigned long long>(latest_frame.timestamp_us),
                     static_cast<int>(latest_frame.state),

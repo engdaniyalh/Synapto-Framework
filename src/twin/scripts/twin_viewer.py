@@ -60,6 +60,11 @@ def udp_telemetry_listener(port: int = 4242):
             data, _ = sock.recvfrom(1024)
             payload = json.loads(data.decode("utf-8"))
 
+            version = int(payload.get("v", 1))
+            if version != 1:
+                # Discard unsupported schema versions
+                continue
+
             seq = int(payload.get("seq", 0))
 
             with g_lock:
