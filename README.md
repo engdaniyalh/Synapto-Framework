@@ -91,6 +91,11 @@ The Reflex engine broadcasts versioned, monotonically sequenced telemetry JSON f
 }
 ```
 
+### Interface Versioning & Deprecation Policy
+- **Interface Stability Guarantee:** The `v1` interface baseline (`urn:synapto:control:v1` and UDP schema `v: 1`) is **frozen and production-stable**.
+- **SemVer Discipline:** Any breaking change to the OPC UA information model (e.g., node removals, data type changes) or UDP packet serialization will increment the major version (e.g., `urn:synapto:control:v2`, UDP schema `v: 2`).
+- **Backward Compatibility & Deprecation Window:** When a major version increment occurs, the Reflex engine will maintain dual-namespace / dual-schema support side-by-side across a defined deprecation cycle, ensuring external SCADA integrations and downstream enterprise orchestrators do not break unexpectedly.
+
 ### PackML State Matrix
 
 | State ID | State Name | Type | Allowed Transition Commands |
